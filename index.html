@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>보물 발굴단 - Treasure Digger</title>
+  <title>보물 발굴단 - 자유 지도 발굴판</title>
   <style>
     * {
       box-sizing: border-box;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
       margin: 0;
@@ -16,422 +17,718 @@
       justify-content: center;
       align-items: center;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+      background: #1e293b;
+      padding: 12px;
       transition: background 0.6s ease;
-      padding: 16px;
     }
-    .game-container {
+    .game-wrapper {
       width: 100%;
-      max-width: 440px;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(10px);
+      max-width: 520px;
+      background: rgba(255, 255, 255, 0.95);
       border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+      padding: 18px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
       text-align: center;
     }
-    .location-badge {
-      display: inline-block;
-      padding: 6px 14px;
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .theme-pill {
+      padding: 6px 13px;
       border-radius: 999px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #fff;
-      margin-bottom: 8px;
-      letter-spacing: -0.3px;
     }
-    h1 {
-      margin: 4px 0 16px;
-      font-size: 24px;
-      color: #1e293b;
+    .sound-btn {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
     }
-    .stats-bar {
+    .stats-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      background: #f1f5f9;
-      padding: 12px;
-      border-radius: 16px;
-      margin-bottom: 14px;
-    }
-    .stat-box {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      border-radius: 14px;
+      margin-bottom: 10px;
     }
     .stat-label {
       font-size: 11px;
       color: #64748b;
       font-weight: 600;
+      display: block;
     }
-    .stat-value {
-      font-size: 18px;
+    .stat-val {
+      font-size: 17px;
       font-weight: 800;
       color: #0f172a;
     }
-    .message-box {
-      min-height: 44px;
+    .status-banner {
+      min-height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #fffbeb;
       border: 1px solid #fde68a;
       color: #92400e;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 700;
       border-radius: 12px;
-      padding: 8px 12px;
-      margin-bottom: 16px;
+      padding: 6px 12px;
+      margin-bottom: 12px;
       transition: all 0.2s ease;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-    .tile {
-      aspect-ratio: 1 / 1;
-      border: none;
-      border-radius: 14px;
-      font-size: 26px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.12s ease, background 0.25s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+    .map-frame {
       position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 3px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.15);
+      cursor: crosshair;
+      margin-bottom: 14px;
     }
-    .tile:hover:not(:disabled) {
-      transform: translateY(-2px);
-    }
-    .tile:active:not(:disabled) {
-      transform: translateY(2px);
-      box-shadow: none;
-    }
-    .tile.dug {
-      cursor: default;
-      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.15);
-      transform: none;
-    }
-    .hint-num {
-      font-size: 11px;
-      font-weight: 700;
-      margin-top: 2px;
-      opacity: 0.75;
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
     .shake {
-      animation: shakeAnim 0.35s ease;
+      animation: shakeBox 0.35s ease;
     }
-    @keyframes shakeAnim {
+    @keyframes shakeBox {
       0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-6px); }
-      50% { transform: translateX(6px); }
-      75% { transform: translateX(-4px); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(7px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
     }
-    .btn-next {
+    .next-map-btn {
       width: 100%;
       padding: 14px;
       border: none;
       border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 800;
       color: #fff;
       background: #2563eb;
       cursor: pointer;
-      box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
-      transition: background 0.2s ease;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transition: transform 0.1s ease, background 0.2s ease;
     }
-    .btn-next:hover {
+    .next-map-btn:hover {
       background: #1d4ed8;
+    }
+    .next-map-btn:active {
+      transform: scale(0.98);
     }
   </style>
 </head>
 <body>
-  <div class="game-container" id="container">
-    <div class="location-badge" id="themeBadge">🌸 봄날의 벚꽃 언덕</div>
-    <h1>⛏️ 보물 발굴단</h1>
+  <div class="game-wrapper" id="wrapper">
+    <div class="top-header">
+      <span class="theme-pill" id="themeBadge">🌸 봄 · 벚꽃 언덕</span>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊 효과음 켜짐</button>
+    </div>
 
-    <div class="stats-bar">
-      <div class="stat-box">
-        <span class="stat-label">남은 기회</span>
-        <span class="stat-value" id="chancesText">10회</span>
+    <div class="stats-row">
+      <div>
+        <span class="stat-label">남은 삽질 기회</span>
+        <span class="stat-val" id="chancesVal">10회</span>
       </div>
-      <div class="stat-box">
+      <div>
         <span class="stat-label">찾은 보물</span>
-        <span class="stat-value" id="treasureText">0 / 4</span>
+        <span class="stat-val" id="treasureVal">0 / 3</span>
       </div>
-      <div class="stat-box">
-        <span class="stat-label">총 점수</span>
-        <span class="stat-value" id="scoreText">0점</span>
+      <div>
+        <span class="stat-label">누적 점수</span>
+        <span class="stat-val" id="scoreVal">0점</span>
       </div>
     </div>
 
-    <div class="message-box" id="messageBox">땅을 클릭해 숨겨진 보물 4개를 찾아보세요!</div>
+    <div class="status-banner" id="banner">지도의 원하는 곳을 클릭해 땅을 파보세요!</div>
 
-    <div class="grid" id="grid"></div>
+    <div class="map-frame" id="mapFrame">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
 
-    <button class="btn-next" id="nextBtn" onclick="initGame()">🌍 새로운 장소로 떠나기</button>
+    <button class="next-map-btn" onclick="startNewMap()">🧭 다음 보물 지도로 이동하기</button>
   </div>
 
   <script>
-    const THEMES = [
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // 오디오 효과음 생성기 (외부 파일 불필요)
+    let soundEnabled = true;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById("soundBtn").textContent = soundEnabled ? "🔊 효과음 켜짐" : "🔇 음소거";
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === "dig") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.14);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === "treasure") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        osc.frequency.setValueAtTime(783.99, now + 0.16);
+        osc.frequency.setValueAtTime(1046.5, now + 0.24);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } else if (type === "trap") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.linearRampToValueAtTime(85, now + 0.3);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+    }
+
+    // 5가지 계절·지형 테마 데이터
+    const MAPS = [
       {
-        name: "🌸 봄 · 벚꽃 핀 비밀 정원",
-        bg: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
-        badge: "#ec4899",
-        soil: "#8d6e63",
-        soilIcon: "🌱",
-        dugBg: "#efebe9"
+        id: "spring",
+        name: "🌸 봄 · 벚꽃 핀 초원 계곡",
+        pageBg: "linear-gradient(135deg, #f9a8d4, #fbcfe8)",
+        badgeColor: "#db2777",
+        groundBase: "#86efac",
+        groundPatch: "#4ade80",
+        holeColor: "#78350f",
+        holeRim: "#92400e",
+        dirtColor: "#a16207",
+        decorIcons: ["🌸", "🌷", "🌿", "🪨", "🌼"]
       },
       {
-        name: "🏖️ 여름 · 야자수 해변 모래사장",
-        bg: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)",
-        badge: "#0284c7",
-        soil: "#eab308",
-        soilIcon: "🐚",
-        dugBg: "#fef9c3"
+        id: "summer",
+        name: "🏖️ 여름 · 에메랄드 보물섬 해변",
+        pageBg: "linear-gradient(135deg, #0284c7, #38bdf8)",
+        badgeColor: "#0369a1",
+        groundBase: "#fde047",
+        groundPatch: "#facc15",
+        holeColor: "#b45309",
+        holeRim: "#d97706",
+        dirtColor: "#eab308",
+        decorIcons: ["🌴", "🐚", "🦀", "⭐", "🪨"]
       },
       {
-        name: "🍁 가을 · 단풍이 물든 고대 숲",
-        bg: "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
-        badge: "#d97706",
-        soil: "#9a3412",
-        soilIcon: "🍂",
-        dugBg: "#ffedd5"
+        id: "autumn",
+        name: "🍁 가을 · 단풍 물든 고대 숲길",
+        pageBg: "linear-gradient(135deg, #d97706, #fb923c)",
+        badgeColor: "#b45309",
+        groundBase: "#fdba74",
+        groundPatch: "#fb923c",
+        holeColor: "#5c2d16",
+        holeRim: "#7c2d12",
+        dirtColor: "#9a3412",
+        decorIcons: ["🍁", "🍂", "🍄", "🌰", "🪨"]
       },
       {
+        id: "winter",
         name: "❄️ 겨울 · 눈 덮인 북극 빙하",
-        bg: "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
-        badge: "#2563eb",
-        soil: "#94a3b8",
-        soilIcon: "❄️",
-        dugBg: "#f1f5f9"
+        pageBg: "linear-gradient(135deg, #60a5fa, #dbeafe)",
+        badgeColor: "#1d4ed8",
+        groundBase: "#f1f5f9",
+        groundPatch: "#e2e8f0",
+        holeColor: "#475569",
+        holeRim: "#94a3b8",
+        dirtColor: "#cbd5e1",
+        decorIcons: ["🌲", "❄️", "⛄", "🧊", "🏔️"]
       },
       {
-        name: "🏜️ 사막 · 피라미드 앞 황금 모래",
-        bg: "linear-gradient(135deg, #f7971e 0%, #ffd200 100%)",
-        badge: "#b45309",
-        soil: "#d97706",
-        soilIcon: "🌵",
-        dugBg: "#fef3c7"
-      },
-      {
-        name: "🌋 화산 · 검은 현무암 용암 지대",
-        bg: "linear-gradient(135deg, #434343 0%, #000000 100%)",
-        badge: "#dc2626",
-        soil: "#334155",
-        soilIcon: "🪨",
-        dugBg: "#e2e8f0"
-      },
-      {
-        name: "🌙 우주 · 고요한 달 표면 크레이터",
-        bg: "linear-gradient(135deg, #141e30 0%, #243b55 100%)",
-        badge: "#6366f1",
-        soil: "#64748b",
-        soilIcon: "✨",
-        dugBg: "#e0e7ff"
+        id: "desert",
+        name: "🏜️ 사막 · 피라미드 황금 모래언덕",
+        pageBg: "linear-gradient(135deg, #ca8a04, #fde047)",
+        badgeColor: "#a16207",
+        groundBase: "#fcd34d",
+        groundPatch: "#fbbf24",
+        holeColor: "#92400e",
+        holeRim: "#b45309",
+        dirtColor: "#d97706",
+        decorIcons: ["🌵", "🐪", "🪨", "🦂", "🏺"]
       }
     ];
 
-    const TREASURES = [
-      { icon: "👑", name: "고대 황금 왕관", points: 300 },
-      { icon: "💎", name: "전설의 다이아몬드", points: 250 },
-      { icon: "💰", name: "묵직한 금화 주머니", points: 200 },
-      { icon: "🏺", name: "신비로운 보물 단지", points: 200 }
+    const TREASURE_TYPES = [
+      { icon: "👑", name: "고대 황금 왕관", score: 350 },
+      { icon: "💎", name: "심해의 다이아몬드", score: 300 },
+      { icon: "🧰", name: "해적의 보물상자", score: 250 }
     ];
 
-    const TRAPS = [
-      { icon: "🐀", name: "찍찍! 시궁쥐가 튀어나왔습니다!", points: -30 },
-      { icon: "💩", name: "으악! 똥을 밟았습니다...", points: -50 },
-      { icon: "💀", name: "덜그럭! 오래된 해골이 나왔습니다!", points: -80 }
+    const TRAP_TYPES = [
+      { icon: "🐀", name: "찍찍! 시궁쥐가 튀어나왔습니다!", score: -40 },
+      { icon: "💩", name: "으악! 똥 무더기를 파버렸습니다!", score: -60 },
+      { icon: "💀", name: "덜그럭! 해골이 나타났습니다!", score: -90 }
     ];
 
-    const GRID_SIZE = 25; // 5x5
-    const TOTAL_TREASURES = 4;
-    const TOTAL_TRAPS = 7;
-
-    let board = [];
+    let currentMapIdx = -1;
+    let currentMap = null;
     let chances = 10;
-    let foundTreasures = 0;
+    let foundCount = 0;
     let totalScore = 0;
-    let gameOver = false;
-    let currentThemeIndex = -1;
+    let roundOver = false;
 
-    function pickRandomTheme() {
-      let nextIdx;
+    let hiddenItems = [];   // 숨겨진 보물 & 함정 좌표
+    let dugHoles = [];      // 파낸 구덩이 목록
+    let decorations = [];   // 지도 위 나무/바위/꽃 장식
+    let particles = [];     // 흙먼지 튀는 파티클
+    let shovelAnim = null;  // 삽 내려찍기 애니메이션 상태
+    let radarRings = [];    // 거리 탐지 파동 효과
+
+    const HIT_RADIUS = 52;  // 발굴 판정 반경
+
+    function startNewMap() {
+      let next;
       do {
-        nextIdx = Math.floor(Math.random() * THEMES.length);
-      } while (nextIdx === currentThemeIndex);
-      currentThemeIndex = nextIdx;
-      return THEMES[nextIdx];
-    }
+        next = Math.floor(Math.random() * MAPS.length);
+      } while (next === currentMapIdx);
+      currentMapIdx = next;
+      currentMap = MAPS[next];
 
-    function initGame() {
-      const theme = pickRandomTheme();
-      document.body.style.background = theme.bg;
+      document.body.style.background = currentMap.pageBg;
       const badge = document.getElementById("themeBadge");
-      badge.textContent = theme.name;
-      badge.style.background = theme.badge;
+      badge.textContent = currentMap.name;
+      badge.style.background = currentMap.badgeColor;
 
       chances = 10;
-      foundTreasures = 0;
-      gameOver = false;
+      foundCount = 0;
+      roundOver = false;
+      dugHoles = [];
+      hiddenItems = [];
+      decorations = [];
+      particles = [];
+      radarRings = [];
+      shovelAnim = null;
 
-      // 보드 초기화
-      board = Array.from({ length: GRID_SIZE }, () => ({
-        type: "empty",
-        item: null,
-        dug: false
-      }));
-
-      // 보물 및 함정 배치용 인덱스 셔플
-      const indices = Array.from({ length: GRID_SIZE }, (_, i) => i);
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]];
+      // 배경 지형 장식(나무, 꽃, 바위 등) 랜덤 배치
+      for (let i = 0; i < 22; i++) {
+        decorations.push({
+          x: 45 + Math.random() * 710,
+          y: 45 + Math.random() * 510,
+          icon: currentMap.decorIcons[Math.floor(Math.random() * currentMap.decorIcons.length)],
+          size: 26 + Math.random() * 14
+        });
       }
 
-      // 보물 4개 배치
-      for (let i = 0; i < TOTAL_TREASURES; i++) {
-        board[indices[i]] = {
-          type: "treasure",
-          item: TREASURES[i % TREASURES.length],
-          dug: false
-        };
+      // 겹치지 않게 보물 3개 + 함정 6개 좌표 생성
+      const placed = [];
+      function getSafeCoords(minDist) {
+        for (let attempt = 0; attempt < 200; attempt++) {
+          const x = 80 + Math.random() * 640;
+          const y = 80 + Math.random() * 440;
+          // 여름 해변 맵이면 위쪽 바다 영역 피하기
+          if (currentMap.id === "summer" && y < 145) continue;
+          const ok = placed.every(p => Math.hypot(p.x - x, p.y - y) >= minDist);
+          if (ok) {
+            placed.push({ x, y });
+            return { x, y };
+          }
+        }
+        return { x: 100 + Math.random() * 600, y: 150 + Math.random() * 350 };
       }
 
-      // 함정 7개 배치 (쥐, 똥, 해골)
-      for (let i = TOTAL_TREASURES; i < TOTAL_TREASURES + TOTAL_TRAPS; i++) {
-        const randomTrap = TRAPS[Math.floor(Math.random() * TRAPS.length)];
-        board[indices[i]] = {
-          type: "trap",
-          item: randomTrap,
-          dug: false
-        };
+      // 보물 3개 배치
+      TREASURE_TYPES.forEach(t => {
+        const pos = getSafeCoords(115);
+        hiddenItems.push({
+          x: pos.x,
+          y: pos.y,
+          kind: "treasure",
+          data: t,
+          found: false
+        });
+      });
+
+      // 함정 6개 배치 (쥐, 똥, 해골)
+      for (let i = 0; i < 6; i++) {
+        const pos = getSafeCoords(95);
+        const trap = TRAP_TYPES[i % TRAP_TYPES.length];
+        hiddenItems.push({
+          x: pos.x,
+          y: pos.y,
+          kind: "trap",
+          data: trap,
+          found: false
+        });
       }
 
-      updateMessage("새로운 장소 도착! 땅을 파서 보물 4개를 찾으세요.", "#fffbeb", "#92400e", "#fde68a");
-      renderBoard(theme);
-      updateStats();
+      setBanner("지도의 의심스러운 지점을 클릭해 삽으로 파보세요!", "#fffbeb", "#92400e", "#fde68a");
+      updateUI();
     }
 
-    function countAdjacentTreasures(index) {
-      const row = Math.floor(index / 5);
-      const col = index % 5;
-      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-      let count = 0;
-      for (const [dr, dc] of dirs) {
-        const nr = row + dr;
-        const nc = col + dc;
-        if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
-          if (board[nr * 5 + nc].type === "treasure") count++;
+    function setBanner(text, bg, color, border) {
+      const el = document.getElementById("banner");
+      el.textContent = text;
+      el.style.background = bg;
+      el.style.color = color;
+      el.style.borderColor = border;
+    }
+
+    function updateUI() {
+      document.getElementById("chancesVal").textContent = `${chances}회`;
+      document.getElementById("treasureVal").textContent = `${foundCount} / ${TREASURE_TYPES.length}`;
+      document.getElementById("scoreVal").textContent = `${totalScore}점`;
+    }
+
+    function spawnDirtParticles(x, y, color) {
+      for (let i = 0; i < 24; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2.5,
+          gravity: 0.28,
+          size: 4 + Math.random() * 5,
+          color,
+          life: 1.0
+        });
+      }
+    }
+
+    function handleDig(x, y) {
+      if (roundOver || chances <= 0) return;
+
+      // 이미 판 구덩이 바로 위 중복 클릭 방지
+      const alreadyDug = dugHoles.some(h => Math.hypot(h.x - x, h.y - y) < 34);
+      if (alreadyDug) {
+        setBanner("이미 파헤친 구덩이입니다! 다른 곳을 노려보세요.", "#f1f5f9", "#475569", "#cbd5e1");
+        return;
+      }
+
+      chances--;
+      playSound("dig");
+      spawnDirtParticles(x, y, currentMap.dirtColor);
+
+      // 삽 내려찍는 액션 애니메이션 시작
+      shovelAnim = { x, y, progress: 0 };
+
+      // 근처에 숨겨진 아이템이 있는지 판정
+      let hitItem = null;
+      let minDist = Infinity;
+      for (const item of hiddenItems) {
+        if (item.found) continue;
+        const d = Math.hypot(item.x - x, item.y - y);
+        if (d <= HIT_RADIUS && d < minDist) {
+          minDist = d;
+          hitItem = item;
         }
       }
-      return count;
-    }
 
-    function digTile(index) {
-      if (gameOver || board[index].dug || chances <= 0) return;
+      if (hitItem) {
+        hitItem.found = true;
+        dugHoles.push({
+          x: hitItem.x,
+          y: hitItem.y,
+          resultKind: hitItem.kind,
+          icon: hitItem.data.icon
+        });
 
-      const theme = THEMES[currentThemeIndex];
-      const cell = board[index];
-      cell.dug = true;
-      chances--;
-
-      const container = document.getElementById("container");
-
-      if (cell.type === "treasure") {
-        foundTreasures++;
-        totalScore += cell.item.points;
-        updateMessage(`🎉 대박! [${cell.item.name}] 발견! (+${cell.item.points}점)`, "#ecfdf5", "#065f46", "#6ee7b7");
-      } else if (cell.type === "trap") {
-        totalScore = Math.max(0, totalScore + cell.item.points);
-        updateMessage(`${cell.item.icon} ${cell.item.name} (${cell.item.points}점)`, "#fef2f2", "#991b1b", "#fca5a5");
-        container.classList.remove("shake");
-        void container.offsetWidth;
-        container.classList.add("shake");
-      } else {
-        const near = countAdjacentTreasures(index);
-        const hintMsg = near > 0
-          ? `빈 땅입니다. 주변 상하좌우에 보물이 ${near}개 숨어있어요!`
-          : `빈 땅입니다. 주변엔 보물이 없는 것 같아요.`;
-        updateMessage(`🕳️ ${hintMsg}`, "#f8fafc", "#334155", "#cbd5e1");
-      }
-
-      checkEndCondition();
-      renderBoard(theme);
-      updateStats();
-    }
-
-    function checkEndCondition() {
-      if (foundTreasures === TOTAL_TREASURES) {
-        gameOver = true;
-        const bonus = chances * 50;
-        totalScore += bonus;
-        updateMessage(`🏆 모든 보물 발굴 성공! 남은 기회 보너스 +${bonus}점!`, "#eff6ff", "#1e40af", "#93c5fd");
-        revealAll();
-      } else if (chances === 0) {
-        gameOver = true;
-        updateMessage(`⏰ 기회 종료! 총 ${foundTreasures}개의 보물을 찾았습니다.`, "#fef3c7", "#92400e", "#fcd34d");
-        revealAll();
-      }
-    }
-
-    function revealAll() {
-      board.forEach(cell => {
-        cell.dug = true;
-      });
-    }
-
-    function updateMessage(text, bg, color, border) {
-      const box = document.getElementById("messageBox");
-      box.textContent = text;
-      box.style.background = bg;
-      box.style.color = color;
-      box.style.borderColor = border;
-    }
-
-    function updateStats() {
-      document.getElementById("chancesText").textContent = `${chances}회`;
-      document.getElementById("treasureText").textContent = `${foundTreasures} / ${TOTAL_TREASURES}`;
-      document.getElementById("scoreText").textContent = `${totalScore}점`;
-    }
-
-    function renderBoard(theme) {
-      const gridEl = document.getElementById("grid");
-      gridEl.innerHTML = "";
-
-      board.forEach((cell, idx) => {
-        const btn = document.createElement("button");
-        btn.className = "tile" + (cell.dug ? " dug" : "");
-
-        if (!cell.dug) {
-          btn.style.background = theme.soil;
-          btn.textContent = theme.soilIcon;
-          btn.onclick = () => digTile(idx);
+        if (hitItem.kind === "treasure") {
+          foundCount++;
+          totalScore += hitItem.data.score;
+          setTimeout(() => playSound("treasure"), 120);
+          setBanner(`🎉 대성공! [${hitItem.data.name}] 발굴! (+${hitItem.data.score}점)`, "#ecfdf5", "#065f46", "#6ee7b7");
         } else {
-          btn.style.background = theme.dugBg;
-          btn.disabled = true;
-
-          if (cell.type === "treasure") {
-            btn.innerHTML = `<span>${cell.item.icon}</span>`;
-          } else if (cell.type === "trap") {
-            btn.innerHTML = `<span>${cell.item.icon}</span>`;
-          } else {
-            const near = countAdjacentTreasures(idx);
-            btn.innerHTML = `<span style="font-size:16px; color:#64748b;">${near > 0 ? near : "·"}</span>`;
+          totalScore = Math.max(0, totalScore + hitItem.data.score);
+          setTimeout(() => playSound("trap"), 120);
+          setBanner(`${hitItem.data.icon} ${hitItem.data.name} (${hitItem.data.score}점)`, "#fef2f2", "#991b1b", "#fca5a5");
+          const wrapper = document.getElementById("wrapper");
+          wrapper.classList.remove("shake");
+          void wrapper.offsetWidth;
+          wrapper.classList.add("shake");
+        }
+      } else {
+        // 빈 땅일 경우 가장 가까운 미발견 보물까지 거리 계산
+        let nearestTreasureDist = Infinity;
+        for (const item of hiddenItems) {
+          if (item.kind === "treasure" && !item.found) {
+            const d = Math.hypot(item.x - x, item.y - y);
+            if (d < nearestTreasureDist) nearestTreasureDist = d;
           }
         }
 
-        gridEl.appendChild(btn);
-      });
+        dugHoles.push({
+          x,
+          y,
+          resultKind: "empty",
+          icon: null
+        });
+
+        // 탐지 파동 효과 추가
+        let ringColor = "#38bdf8";
+        let hintText = "❄️ 차가워요... 보물이 꽤 멀리 있습니다.";
+        if (nearestTreasureDist < 120) {
+          ringColor = "#ef4444";
+          hintText = "🔥 앗 뜨거워! 바로 코앞에 보물이 묻혀 있어요!";
+        } else if (nearestTreasureDist < 220) {
+          ringColor = "#f97316";
+          hintText = "☀️ 따뜻해요! 이 근처 어딘가에 보물이 있습니다.";
+        } else if (nearestTreasureDist < 340) {
+          ringColor = "#eab308";
+          hintText = "🌤️ 미지근해요. 조금 더 이동해서 파보세요.";
+        }
+
+        radarRings.push({ x, y, radius: 10, maxRadius: 95, color: ringColor, alpha: 0.9 });
+        setBanner(hintText, "#f8fafc", "#1e293b", "#cbd5e1");
+      }
+
+      // 종료 조건 체크
+      if (foundCount === TREASURE_TYPES.length) {
+        roundOver = true;
+        const bonus = chances * 60;
+        totalScore += bonus;
+        setBanner(`🏆 지도 정복 완료! 남은 기회 보너스 +${bonus}점!`, "#eff6ff", "#1e40af", "#93c5fd");
+      } else if (chances === 0) {
+        roundOver = true;
+        setBanner(`⏰ 10번의 기회 종료! 숨겨져 있던 위치를 공개합니다.`, "#fef3c7", "#92400e", "#fcd34d");
+      }
+
+      updateUI();
     }
 
-    // 시작 시 첫 판 세팅
-    initGame();
+    // 클릭 / 터치 좌표를 Canvas 800x600 좌표로 정확히 변환
+    canvas.addEventListener("pointerdown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      handleDig(x, y);
+    });
+
+    // 지형 일러스트 그리기
+    function drawMapBackground() {
+      ctx.fillStyle = currentMap.groundBase;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 지형별 특색 일러스트 요소 렌더링
+      if (currentMap.id === "spring") {
+        // 구불구불한 강물
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 46;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-20, 140);
+        ctx.bezierCurveTo(260, 80, 480, 320, 820, 220);
+        ctx.stroke();
+
+        // 잔디 언덕 패치
+        ctx.fillStyle = currentMap.groundPatch;
+        ctx.beginPath();
+        ctx.ellipse(200, 430, 180, 90, 0.2, 0, Math.PI * 2);
+        ctx.ellipse(620, 460, 160, 80, -0.15, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (currentMap.id === "summer") {
+        // 위쪽 푸른 바다와 파도
+        ctx.fillStyle = "#0ea5e9";
+        ctx.fillRect(0, 0, canvas.width, 130);
+        ctx.fillStyle = "#e0f2fe";
+        ctx.beginPath();
+        for (let x = 0; x <= 800; x += 40) {
+          ctx.arc(x + 20, 130, 22, 0, Math.PI, false);
+        }
+        ctx.fill();
+      } else if (currentMap.id === "autumn") {
+        // 오솔길
+        ctx.strokeStyle = "#fed7aa";
+        ctx.lineWidth = 54;
+        ctx.beginPath();
+        ctx.moveTo(100, 620);
+        ctx.quadraticCurveTo(420, 320, 720, -20);
+        ctx.stroke();
+      } else if (currentMap.id === "winter") {
+        // 얼음 호수
+        ctx.fillStyle = "#bae6fd";
+        ctx.beginPath();
+        ctx.ellipse(540, 220, 150, 85, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (currentMap.id === "desert") {
+        // 모래 언덕 곡선 및 피라미드 실루엣
+        ctx.fillStyle = currentMap.groundPatch;
+        ctx.beginPath();
+        ctx.moveTo(0, 360);
+        ctx.quadraticCurveTo(250, 260, 500, 380);
+        ctx.quadraticCurveTo(680, 450, 800, 340);
+        ctx.lineTo(800, 600);
+        ctx.lineTo(0, 600);
+        ctx.fill();
+
+        // 피라미드
+        ctx.fillStyle = "#d97706";
+        ctx.beginPath();
+        ctx.moveTo(620, 170);
+        ctx.lineTo(530, 290);
+        ctx.lineTo(710, 290);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 보물지도 점선 경로 장식
+      ctx.save();
+      ctx.setLineDash([10, 10]);
+      ctx.strokeStyle = "rgba(120, 53, 15, 0.25)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(90, 510);
+      ctx.quadraticCurveTo(380, 480, 430, 290);
+      ctx.quadraticCurveTo(490, 140, 690, 120);
+      ctx.stroke();
+      ctx.restore();
+
+      // 나무, 꽃, 바위 등 자연물 아이콘 배치
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const d of decorations) {
+        ctx.font = `${d.size}px sans-serif`;
+        ctx.fillText(d.icon, d.x, d.y);
+      }
+    }
+
+    // 메인 애니메이션 루프
+    function renderLoop() {
+      drawMapBackground();
+
+      // 탐지기 레이더 파동 그리기
+      for (let i = radarRings.length - 1; i >= 0; i--) {
+        const r = radarRings[i];
+        ctx.save();
+        ctx.strokeStyle = r.color;
+        ctx.globalAlpha = r.alpha;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        r.radius += 2.2;
+        r.alpha -= 0.018;
+        if (r.alpha <= 0) radarRings.splice(i, 1);
+      }
+
+      // 파낸 구덩이 그리기
+      for (const hole of dugHoles) {
+        // 구덩이 바깥 테두리(파헤쳐진 흙)
+        ctx.fillStyle = currentMap.holeRim;
+        ctx.beginPath();
+        ctx.ellipse(hole.x, hole.y + 4, 34, 24, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 구덩이 안쪽 어두운 흙
+        ctx.fillStyle = currentMap.holeColor;
+        ctx.beginPath();
+        ctx.ellipse(hole.x, hole.y + 4, 27, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 발굴된 보물이나 함정 아이콘 표시
+        if (hole.icon) {
+          ctx.font = "36px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(hole.icon, hole.x, hole.y - 6);
+        }
+      }
+
+      // 라운드 종료 시 못 찾은 보물·함정 위치 반투명 공개
+      if (roundOver) {
+        for (const item of hiddenItems) {
+          if (!item.found) {
+            ctx.save();
+            ctx.globalAlpha = 0.72;
+            ctx.fillStyle = item.kind === "treasure" ? "rgba(254, 240, 138, 0.85)" : "rgba(254, 202, 202, 0.7)";
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = "32px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(item.data.icon, item.x, item.y);
+            ctx.restore();
+          }
+        }
+      }
+
+      // 흙먼지 파티클 애니메이션
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.life -= 0.032;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 삽 내려찍는 액션 애니메이션
+      if (shovelAnim) {
+        shovelAnim.progress += 0.12;
+        const swingAngle = Math.sin(shovelAnim.progress * Math.PI) * -0.8;
+        ctx.save();
+        ctx.translate(shovelAnim.x + 15, shovelAnim.y - 15);
+        ctx.rotate(swingAngle);
+        ctx.font = "44px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("⛏️", 0, 0);
+        ctx.restore();
+
+        if (shovelAnim.progress >= 1) {
+          shovelAnim = null;
+        }
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // 첫 지도 시작 및 렌더링 루프 가동
+    startNewMap();
+    renderLoop();
   </script>
 </body>
 </html>
