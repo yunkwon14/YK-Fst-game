@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>보물 발굴단 - Treasure Digger</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+      transition: background 0.6s ease;
+      padding: 16px;
+    }
+    .game-container {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+      text-align: center;
+    }
+    .location-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+    h1 {
+      margin: 4px 0 16px;
+      font-size: 24px;
+      color: #1e293b;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+    }
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .message-box {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .tile {
+      aspect-ratio: 1 / 1;
+      border: none;
+      border-radius: 14px;
+      font-size: 26px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s ease, background 0.25s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    .tile:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    .tile:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+    .tile.dug {
+      cursor: default;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.15);
+      transform: none;
+    }
+    .hint-num {
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 2px;
+      opacity: 0.75;
+    }
+    .shake {
+      animation: shakeAnim 0.35s ease;
+    }
+    @keyframes shakeAnim {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      50% { transform: translateX(6px); }
+      75% { transform: translateX(-4px); }
+    }
+    .btn-next {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      background: #2563eb;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+      transition: background 0.2s ease;
+    }
+    .btn-next:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="container">
+    <div class="location-badge" id="themeBadge">🌸 봄날의 벚꽃 언덕</div>
+    <h1>⛏️ 보물 발굴단</h1>
+
+    <div class="stats-bar">
+      <div class="stat-box">
+        <span class="stat-label">남은 기회</span>
+        <span class="stat-value" id="chancesText">10회</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">찾은 보물</span>
+        <span class="stat-value" id="treasureText">0 / 4</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">총 점수</span>
+        <span class="stat-value" id="scoreText">0점</span>
+      </div>
+    </div>
+
+    <div class="message-box" id="messageBox">땅을 클릭해 숨겨진 보물 4개를 찾아보세요!</div>
+
+    <div class="grid" id="grid"></div>
+
+    <button class="btn-next" id="nextBtn" onclick="initGame()">🌍 새로운 장소로 떠나기</button>
+  </div>
+
+  <script>
+    const THEMES = [
+      {
+        name: "🌸 봄 · 벚꽃 핀 비밀 정원",
+        bg: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+        badge: "#ec4899",
+        soil: "#8d6e63",
+        soilIcon: "🌱",
+        dugBg: "#efebe9"
+      },
+      {
+        name: "🏖️ 여름 · 야자수 해변 모래사장",
+        bg: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)",
+        badge: "#0284c7",
+        soil: "#eab308",
+        soilIcon: "🐚",
+        dugBg: "#fef9c3"
+      },
+      {
+        name: "🍁 가을 · 단풍이 물든 고대 숲",
+        bg: "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+        badge: "#d97706",
+        soil: "#9a3412",
+        soilIcon: "🍂",
+        dugBg: "#ffedd5"
+      },
+      {
+        name: "❄️ 겨울 · 눈 덮인 북극 빙하",
+        bg: "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
+        badge: "#2563eb",
+        soil: "#94a3b8",
+        soilIcon: "❄️",
+        dugBg: "#f1f5f9"
+      },
+      {
+        name: "🏜️ 사막 · 피라미드 앞 황금 모래",
+        bg: "linear-gradient(135deg, #f7971e 0%, #ffd200 100%)",
+        badge: "#b45309",
+        soil: "#d97706",
+        soilIcon: "🌵",
+        dugBg: "#fef3c7"
+      },
+      {
+        name: "🌋 화산 · 검은 현무암 용암 지대",
+        bg: "linear-gradient(135deg, #434343 0%, #000000 100%)",
+        badge: "#dc2626",
+        soil: "#334155",
+        soilIcon: "🪨",
+        dugBg: "#e2e8f0"
+      },
+      {
+        name: "🌙 우주 · 고요한 달 표면 크레이터",
+        bg: "linear-gradient(135deg, #141e30 0%, #243b55 100%)",
+        badge: "#6366f1",
+        soil: "#64748b",
+        soilIcon: "✨",
+        dugBg: "#e0e7ff"
+      }
+    ];
+
+    const TREASURES = [
+      { icon: "👑", name: "고대 황금 왕관", points: 300 },
+      { icon: "💎", name: "전설의 다이아몬드", points: 250 },
+      { icon: "💰", name: "묵직한 금화 주머니", points: 200 },
+      { icon: "🏺", name: "신비로운 보물 단지", points: 200 }
+    ];
+
+    const TRAPS = [
+      { icon: "🐀", name: "찍찍! 시궁쥐가 튀어나왔습니다!", points: -30 },
+      { icon: "💩", name: "으악! 똥을 밟았습니다...", points: -50 },
+      { icon: "💀", name: "덜그럭! 오래된 해골이 나왔습니다!", points: -80 }
+    ];
+
+    const GRID_SIZE = 25; // 5x5
+    const TOTAL_TREASURES = 4;
+    const TOTAL_TRAPS = 7;
+
+    let board = [];
+    let chances = 10;
+    let foundTreasures = 0;
+    let totalScore = 0;
+    let gameOver = false;
+    let currentThemeIndex = -1;
+
+    function pickRandomTheme() {
+      let nextIdx;
+      do {
+        nextIdx = Math.floor(Math.random() * THEMES.length);
+      } while (nextIdx === currentThemeIndex);
+      currentThemeIndex = nextIdx;
+      return THEMES[nextIdx];
+    }
+
+    function initGame() {
+      const theme = pickRandomTheme();
+      document.body.style.background = theme.bg;
+      const badge = document.getElementById("themeBadge");
+      badge.textContent = theme.name;
+      badge.style.background = theme.badge;
+
+      chances = 10;
+      foundTreasures = 0;
+      gameOver = false;
+
+      // 보드 초기화
+      board = Array.from({ length: GRID_SIZE }, () => ({
+        type: "empty",
+        item: null,
+        dug: false
+      }));
+
+      // 보물 및 함정 배치용 인덱스 셔플
+      const indices = Array.from({ length: GRID_SIZE }, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+
+      // 보물 4개 배치
+      for (let i = 0; i < TOTAL_TREASURES; i++) {
+        board[indices[i]] = {
+          type: "treasure",
+          item: TREASURES[i % TREASURES.length],
+          dug: false
+        };
+      }
+
+      // 함정 7개 배치 (쥐, 똥, 해골)
+      for (let i = TOTAL_TREASURES; i < TOTAL_TREASURES + TOTAL_TRAPS; i++) {
+        const randomTrap = TRAPS[Math.floor(Math.random() * TRAPS.length)];
+        board[indices[i]] = {
+          type: "trap",
+          item: randomTrap,
+          dug: false
+        };
+      }
+
+      updateMessage("새로운 장소 도착! 땅을 파서 보물 4개를 찾으세요.", "#fffbeb", "#92400e", "#fde68a");
+      renderBoard(theme);
+      updateStats();
+    }
+
+    function countAdjacentTreasures(index) {
+      const row = Math.floor(index / 5);
+      const col = index % 5;
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      let count = 0;
+      for (const [dr, dc] of dirs) {
+        const nr = row + dr;
+        const nc = col + dc;
+        if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
+          if (board[nr * 5 + nc].type === "treasure") count++;
+        }
+      }
+      return count;
+    }
+
+    function digTile(index) {
+      if (gameOver || board[index].dug || chances <= 0) return;
+
+      const theme = THEMES[currentThemeIndex];
+      const cell = board[index];
+      cell.dug = true;
+      chances--;
+
+      const container = document.getElementById("container");
+
+      if (cell.type === "treasure") {
+        foundTreasures++;
+        totalScore += cell.item.points;
+        updateMessage(`🎉 대박! [${cell.item.name}] 발견! (+${cell.item.points}점)`, "#ecfdf5", "#065f46", "#6ee7b7");
+      } else if (cell.type === "trap") {
+        totalScore = Math.max(0, totalScore + cell.item.points);
+        updateMessage(`${cell.item.icon} ${cell.item.name} (${cell.item.points}점)`, "#fef2f2", "#991b1b", "#fca5a5");
+        container.classList.remove("shake");
+        void container.offsetWidth;
+        container.classList.add("shake");
+      } else {
+        const near = countAdjacentTreasures(index);
+        const hintMsg = near > 0
+          ? `빈 땅입니다. 주변 상하좌우에 보물이 ${near}개 숨어있어요!`
+          : `빈 땅입니다. 주변엔 보물이 없는 것 같아요.`;
+        updateMessage(`🕳️ ${hintMsg}`, "#f8fafc", "#334155", "#cbd5e1");
+      }
+
+      checkEndCondition();
+      renderBoard(theme);
+      updateStats();
+    }
+
+    function checkEndCondition() {
+      if (foundTreasures === TOTAL_TREASURES) {
+        gameOver = true;
+        const bonus = chances * 50;
+        totalScore += bonus;
+        updateMessage(`🏆 모든 보물 발굴 성공! 남은 기회 보너스 +${bonus}점!`, "#eff6ff", "#1e40af", "#93c5fd");
+        revealAll();
+      } else if (chances === 0) {
+        gameOver = true;
+        updateMessage(`⏰ 기회 종료! 총 ${foundTreasures}개의 보물을 찾았습니다.`, "#fef3c7", "#92400e", "#fcd34d");
+        revealAll();
+      }
+    }
+
+    function revealAll() {
+      board.forEach(cell => {
+        cell.dug = true;
+      });
+    }
+
+    function updateMessage(text, bg, color, border) {
+      const box = document.getElementById("messageBox");
+      box.textContent = text;
+      box.style.background = bg;
+      box.style.color = color;
+      box.style.borderColor = border;
+    }
+
+    function updateStats() {
+      document.getElementById("chancesText").textContent = `${chances}회`;
+      document.getElementById("treasureText").textContent = `${foundTreasures} / ${TOTAL_TREASURES}`;
+      document.getElementById("scoreText").textContent = `${totalScore}점`;
+    }
+
+    function renderBoard(theme) {
+      const gridEl = document.getElementById("grid");
+      gridEl.innerHTML = "";
+
+      board.forEach((cell, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "tile" + (cell.dug ? " dug" : "");
+
+        if (!cell.dug) {
+          btn.style.background = theme.soil;
+          btn.textContent = theme.soilIcon;
+          btn.onclick = () => digTile(idx);
+        } else {
+          btn.style.background = theme.dugBg;
+          btn.disabled = true;
+
+          if (cell.type === "treasure") {
+            btn.innerHTML = `<span>${cell.item.icon}</span>`;
+          } else if (cell.type === "trap") {
+            btn.innerHTML = `<span>${cell.item.icon}</span>`;
+          } else {
+            const near = countAdjacentTreasures(idx);
+            btn.innerHTML = `<span style="font-size:16px; color:#64748b;">${near > 0 ? near : "·"}</span>`;
+          }
+        }
+
+        gridEl.appendChild(btn);
+      });
+    }
+
+    // 시작 시 첫 판 세팅
+    initGame();
+  </script>
+</body>
+</html>
